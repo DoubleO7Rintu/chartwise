@@ -21,6 +21,7 @@ import AlertHistory from '@/components/AlertHistory';
 import MultiChartView from '@/components/MultiChartView';
 import TradingJournal from '@/components/TradingJournal';
 import PatternDetector from '@/components/PatternDetector';
+import VolumeProfile from '@/components/VolumeProfile';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -587,8 +588,11 @@ export default function Home() {
         </div>
       )}
 
-      {/* Pattern Detection */}
-      <PatternDetector data={ohlcvData} symbol={selectedAsset} className="mb-6" />
+      {/* Pattern Detection & Volume Profile */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <PatternDetector data={ohlcvData} symbol={selectedAsset} />
+        <VolumeProfile data={ohlcvData} currentPrice={assetInfo?.price || 0} />
+      </div>
 
       {/* News Feed & Trading Journal */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
