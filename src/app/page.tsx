@@ -16,6 +16,7 @@ import PriceAlerts from '@/components/PriceAlerts';
 import CompareModal from '@/components/CompareModal';
 import Portfolio from '@/components/Portfolio';
 import AssetSearch from '@/components/AssetSearch';
+import NewsFeed from '@/components/NewsFeed';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -551,6 +552,9 @@ export default function Home() {
           )}
         </div>
       )}
+
+      {/* News Feed */}
+      <NewsFeed symbol={selectedAsset} className="mb-6" />
       
       {/* Chart Type & Indicators Toggle */}
       <div className="indicator-scroll flex flex-wrap items-center gap-4 mb-4 overflow-x-auto pb-2">
