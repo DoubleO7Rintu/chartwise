@@ -9,7 +9,7 @@ import { runAIAnalysis, AIAnalysis } from '@/utils/aiAnalysis';
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
 
-const TIMEFRAMES = ['1d', '7d', '30d', '90d', '365d'];
+const TIMEFRAMES = ['1d', '7d', '14d', '30d', '90d', '180d', '365d'];
 
 export default function Home() {
   const [selectedAsset, setSelectedAsset] = useState('ETH');
@@ -19,6 +19,7 @@ export default function Home() {
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeIndicators, setActiveIndicators] = useState<string[]>(['sma20', 'bb']);
+  const [chartType, setChartType] = useState<'candlestick' | 'line' | 'area'>('candlestick');
   
   const assets = getSupportedAssets();
   
@@ -231,9 +232,35 @@ export default function Home() {
         </div>
       )}
       
-      {/* Indicators Toggle */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <span className="text-sm text-gray-400 py-1">Indicators:</span>
+      {/* Chart Type & Indicators Toggle */}
+      <div className="flex flex-wrap items-center gap-4 mb-4">
+        {/* Chart Type Selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-400">Chart:</span>
+          {[
+            { id: 'candlestick', label: '🕯️', title: 'Candlestick' },
+            { id: 'line', label: '📈', title: 'Line' },
+            { id: 'area', label: '📊', title: 'Area' },
+          ].map(type => (
+            <button
+              key={type.id}
+              onClick={() => setChartType(type.id as any)}
+              title={type.title}
+              className={`px-3 py-1 rounded text-lg transition-all ${
+                chartType === type.id
+                  ? 'bg-[#2962ff] text-white'
+                  : 'bg-[#1e222d] text-gray-400 hover:bg-[#2a2e39]'
+              }`}
+            >
+              {type.label}
+            </button>
+          ))}
+        </div>
+        
+        <div className="w-px h-6 bg-gray-600" />
+        
+        {/* Indicators */}
+        <span className="text-sm text-gray-400">Indicators:</span>
         {[
           { id: 'sma20', label: 'SMA 20' },
           { id: 'sma50', label: 'SMA 50' },
@@ -262,6 +289,7 @@ export default function Home() {
             indicators={indicators}
             supportResistance={aiAnalysis?.supportResistance || []}
             height={500}
+            chartType={chartType}
           />
         )}
       </div>

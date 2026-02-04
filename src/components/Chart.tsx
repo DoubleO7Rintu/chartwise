@@ -5,6 +5,8 @@ import { createChart, ColorType, CrosshairMode } from 'lightweight-charts';
 import { OHLCV } from '@/utils/indicators';
 import { SupportResistance } from '@/utils/aiAnalysis';
 
+export type ChartType = 'candlestick' | 'line' | 'area';
+
 interface ChartProps {
   data: OHLCV[];
   supportResistance?: SupportResistance[];
@@ -16,13 +18,15 @@ interface ChartProps {
     bb?: { upper: number[]; middle: number[]; lower: number[] };
   };
   height?: number;
+  chartType?: ChartType;
 }
 
 export default function Chart({ 
   data, 
   supportResistance = [],
   indicators,
-  height = 500 
+  height = 500,
+  chartType = 'candlestick'
 }: ChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   
@@ -54,26 +58,49 @@ export default function Chart({
       height: height,
     });
     
-    // Add candlestick series
-    const candlestickSeries = chart.addCandlestickSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderDownColor: '#ef5350',
-      borderUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-      wickUpColor: '#26a69a',
-    });
+    // Add main price series based on chart type
+    let mainSeries: any;
     
-    // Set candlestick data
-    const candleData = data.map(d => ({
-      time: d.time,
-      open: d.open,
-      high: d.high,
-      low: d.low,
-      close: d.close,
-    }));
-    
-    candlestickSeries.setData(candleData as any);
+    if (chartType === 'candlestick') {
+      mainSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderDownColor: '#ef5350',
+        borderUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
+        wickUpColor: '#26a69a',
+      });
+      const candleData = data.map(d => ({
+        time: d.time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+      }));
+      mainSeries.setData(candleData as any);
+    } else if (chartType === 'line') {
+      mainSeries = chart.addLineSeries({
+        color: '#2962ff',
+        lineWidth: 2,
+      });
+      const lineData = data.map(d => ({
+        time: d.time,
+        value: d.close,
+      }));
+      mainSeries.setData(lineData as any);
+    } else if (chartType === 'area') {
+      mainSeries = chart.addAreaSeries({
+        topColor: 'rgba(41, 98, 255, 0.4)',
+        bottomColor: 'rgba(41, 98, 255, 0.0)',
+        lineColor: '#2962ff',
+        lineWidth: 2,
+      });
+      const areaData = data.map(d => ({
+        time: d.time,
+        value: d.close,
+      }));
+      mainSeries.setData(areaData as any);
+    }
     
     // Add indicator lines
     if (indicators?.sma20) {
@@ -163,7 +190,7 @@ export default function Chart({
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [data, supportResistance, indicators, height]);
+  }, [data, supportResistance, indicators, height, chartType]);
   
   return (
     <div className="chart-container p-1">
