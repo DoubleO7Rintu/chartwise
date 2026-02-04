@@ -23,6 +23,7 @@ import TradingJournal from '@/components/TradingJournal';
 import PatternDetector from '@/components/PatternDetector';
 import VolumeProfile from '@/components/VolumeProfile';
 import DrawingTools, { useDrawings } from '@/components/DrawingTools';
+import MarketHeatmap from '@/components/MarketHeatmap';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -591,6 +592,9 @@ export default function Home() {
           )}
         </div>
       )}
+
+      {/* Market Heatmap */}
+      <MarketHeatmap onSelectAsset={setSelectedAsset} />
 
       {/* Pattern Detection & Volume Profile */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
