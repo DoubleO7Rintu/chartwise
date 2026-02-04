@@ -16,6 +16,7 @@ interface ChartProps {
     ema12?: number[];
     ema26?: number[];
     bb?: { upper: number[]; middle: number[]; lower: number[] };
+    vwap?: number[];
   };
   fibonacciLevels?: FibonacciLevel[];
   height?: number;
@@ -188,6 +189,22 @@ export default function Chart({
       
       bbUpperSeries.setData(bbUpperData as any);
       bbLowerSeries.setData(bbLowerData as any);
+    }
+    
+    // Add VWAP
+    if (indicators?.vwap) {
+      const vwapSeries = chart.addLineSeries({
+        color: '#e91e63', // Pink
+        lineWidth: 2,
+        lineStyle: 0, // Solid
+      });
+      const vwapData = indicators.vwap
+        .map((value, i) => ({
+          time: data[i].time,
+          value: isNaN(value) ? null : value,
+        }))
+        .filter(d => d.value !== null);
+      vwapSeries.setData(vwapData as any);
     }
     
     // Add support/resistance lines
