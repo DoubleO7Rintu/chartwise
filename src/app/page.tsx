@@ -18,6 +18,7 @@ import Portfolio from '@/components/Portfolio';
 import AssetSearch from '@/components/AssetSearch';
 import NewsFeed from '@/components/NewsFeed';
 import AlertHistory from '@/components/AlertHistory';
+import MultiChartView from '@/components/MultiChartView';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -44,6 +45,7 @@ export default function Home() {
   const [activeIndicators, setActiveIndicators] = useState<string[]>(['sma20', 'bb']);
   const [chartType, setChartType] = useState<'candlestick' | 'line' | 'area'>('candlestick');
   const [showCompare, setShowCompare] = useState(false);
+  const [showMultiChart, setShowMultiChart] = useState(false);
   const chartRef = useRef<ChartRef>(null);
   
   const { theme, toggleTheme, mounted } = useTheme();
@@ -291,6 +293,13 @@ export default function Home() {
               title="Compare assets"
             >
               📊
+            </button>
+            <button
+              onClick={() => setShowMultiChart(true)}
+              className="theme-toggle"
+              title="Multi-chart view"
+            >
+              ⊞
             </button>
             {mounted && (
               <button
@@ -687,6 +696,12 @@ export default function Home() {
         isOpen={showCompare}
         onClose={() => setShowCompare(false)}
         primaryAsset={selectedAsset}
+      />
+
+      <MultiChartView
+        isOpen={showMultiChart}
+        onClose={() => setShowMultiChart(false)}
+        initialSymbols={[selectedAsset, 'ETH']}
       />
     </main>
   );
