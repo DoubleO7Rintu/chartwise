@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
-import { createChart, ColorType, CrosshairMode, IChartApi } from 'lightweight-charts';
+import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react';
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi } from 'lightweight-charts';
 import { OHLCV, FibonacciLevel, HeikinAshi } from '@/utils/indicators';
 import { SupportResistance } from '@/utils/aiAnalysis';
+import { Drawing, DrawingTool } from '@/components/DrawingTools';
 
 export type ChartType = 'candlestick' | 'line' | 'area' | 'heikinashi';
 
@@ -26,6 +27,14 @@ interface ChartProps {
   height?: number;
   chartType?: ChartType;
   showVolume?: boolean;
+  // Drawing tools integration
+  drawings?: Drawing[];
+  activeTool?: DrawingTool;
+  drawingColor?: string;
+  onDrawingStart?: (point: { time: number; price: number }) => void;
+  onDrawingMove?: (point: { time: number; price: number }) => void;
+  onDrawingEnd?: (point: { time: number; price: number }) => void;
+  currentDrawing?: Partial<Drawing> | null;
 }
 
 const Chart = forwardRef<ChartRef, ChartProps>(function Chart({ 
@@ -35,10 +44,19 @@ const Chart = forwardRef<ChartRef, ChartProps>(function Chart({
   fibonacciLevels = [],
   height = 500,
   chartType = 'candlestick',
-  showVolume = true
+  showVolume = true,
+  drawings = [],
+  activeTool = 'none',
+  drawingColor = '#3b82f6',
+  onDrawingStart,
+  onDrawingMove,
+  onDrawingEnd,
+  currentDrawing,
 }, ref) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const mainSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const drawingSeriesRef = useRef<ISeriesApi<any>[]>([]);
 
   // Expose screenshot function
   useImperativeHandle(ref, () => ({
@@ -269,6 +287,77 @@ const Chart = forwardRef<ChartRef, ChartProps>(function Chart({
       });
     }
     
+    // Store main series reference for coordinate conversion
+    mainSeriesRef.current = mainSeries;
+
+    // Render saved drawings
+    drawingSeriesRef.current = [];
+    const allDrawings = [...drawings];
+    if (currentDrawing?.points && currentDrawing.points.length >= 1 && currentDrawing.type) {
+      allDrawings.push(currentDrawing as Drawing);
+    }
+
+    allDrawings.forEach((drawing) => {
+      if (!drawing.points || drawing.points.length === 0) return;
+
+      if (drawing.type === 'horizontal' && drawing.points.length >= 1) {
+        const hLine = chart.addLineSeries({
+          color: drawing.color || '#3b82f6',
+          lineWidth: 2,
+          lineStyle: 2,
+          crosshairMarkerVisible: false,
+        });
+        hLine.setData([
+          { time: data[0].time, value: drawing.points[0].price },
+          { time: data[data.length - 1].time, value: drawing.points[0].price },
+        ] as any);
+        drawingSeriesRef.current.push(hLine);
+      } else if (drawing.type === 'trendline' && drawing.points.length >= 2) {
+        const tLine = chart.addLineSeries({
+          color: drawing.color || '#3b82f6',
+          lineWidth: 2,
+          crosshairMarkerVisible: false,
+        });
+        tLine.setData([
+          { time: drawing.points[0].time, value: drawing.points[0].price },
+          { time: drawing.points[1].time, value: drawing.points[1].price },
+        ] as any);
+        drawingSeriesRef.current.push(tLine);
+      } else if (drawing.type === 'rectangle' && drawing.points.length >= 2) {
+        // Draw rectangle as 4 lines (top, bottom, left, right approximated by lines)
+        const p1 = drawing.points[0];
+        const p2 = drawing.points[1];
+        const topPrice = Math.max(p1.price, p2.price);
+        const bottomPrice = Math.min(p1.price, p2.price);
+        const leftTime = Math.min(p1.time, p2.time);
+        const rightTime = Math.max(p1.time, p2.time);
+
+        // Top line
+        const topLine = chart.addLineSeries({
+          color: drawing.color || '#3b82f6',
+          lineWidth: 1,
+          crosshairMarkerVisible: false,
+        });
+        topLine.setData([
+          { time: leftTime, value: topPrice },
+          { time: rightTime, value: topPrice },
+        ] as any);
+        drawingSeriesRef.current.push(topLine);
+
+        // Bottom line
+        const bottomLine = chart.addLineSeries({
+          color: drawing.color || '#3b82f6',
+          lineWidth: 1,
+          crosshairMarkerVisible: false,
+        });
+        bottomLine.setData([
+          { time: leftTime, value: bottomPrice },
+          { time: rightTime, value: bottomPrice },
+        ] as any);
+        drawingSeriesRef.current.push(bottomLine);
+      }
+    });
+
     // Fit content
     chart.timeScale().fitContent();
     
@@ -278,19 +367,54 @@ const Chart = forwardRef<ChartRef, ChartProps>(function Chart({
         chart.applyOptions({ width: chartContainerRef.current.clientWidth });
       }
     };
+
+    // Mouse event handling for drawing tools
+    const handleCrosshairMove = (param: any) => {
+      if (activeTool === 'none' || !param.point || !param.time) return;
+      
+      const price = mainSeries.coordinateToPrice(param.point.y);
+      if (price !== null && !isNaN(price)) {
+        onDrawingMove?.({ time: param.time as number, price });
+      }
+    };
+
+    chart.subscribeCrosshairMove(handleCrosshairMove);
+
+    const handleClick = (param: any) => {
+      if (activeTool === 'none' || !param.point || !param.time) return;
+      
+      const price = mainSeries.coordinateToPrice(param.point.y);
+      if (price !== null && !isNaN(price)) {
+        const point = { time: param.time as number, price };
+        if (!currentDrawing || !currentDrawing.points || currentDrawing.points.length === 0) {
+          onDrawingStart?.(point);
+        } else {
+          onDrawingEnd?.(point);
+        }
+      }
+    };
+
+    chart.subscribeClick(handleClick);
     
     window.addEventListener('resize', handleResize);
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      chart.unsubscribeCrosshairMove(handleCrosshairMove);
+      chart.unsubscribeClick(handleClick);
+      mainSeriesRef.current = null;
+      drawingSeriesRef.current = [];
       chartRef.current = null;
       chart.remove();
     };
-  }, [data, supportResistance, indicators, fibonacciLevels, height, chartType, showVolume]);
+  }, [data, supportResistance, indicators, fibonacciLevels, height, chartType, showVolume, drawings, activeTool, currentDrawing, drawingColor, onDrawingStart, onDrawingMove, onDrawingEnd]);
   
   return (
     <div className="chart-container p-1">
-      <div ref={chartContainerRef} />
+      <div 
+        ref={chartContainerRef} 
+        style={{ cursor: activeTool !== 'none' ? 'crosshair' : 'default' }}
+      />
     </div>
   );
 });

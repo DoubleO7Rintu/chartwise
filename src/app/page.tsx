@@ -22,6 +22,7 @@ import MultiChartView from '@/components/MultiChartView';
 import TradingJournal from '@/components/TradingJournal';
 import PatternDetector from '@/components/PatternDetector';
 import VolumeProfile from '@/components/VolumeProfile';
+import DrawingTools, { useDrawings } from '@/components/DrawingTools';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -56,6 +57,8 @@ export default function Home() {
   const { watchlist, isInWatchlist, toggleWatchlist, removeFromWatchlist, mounted: watchlistMounted } = useWatchlist();
   const { alerts, alertHistory, addAlert, removeAlert, checkAlerts, clearAlertHistory, requestNotificationPermission, mounted: alertsMounted } = usePriceAlerts();
   const { holdings, addHolding, removeHolding, getTotalValue, getTotalCost, getHoldingsWithPrices, mounted: portfolioMounted } = usePortfolio();
+  const { drawings, activeTool, currentDrawing, setActiveTool, undoDrawing, clearDrawings, startDrawing, updateDrawing, finishDrawing } = useDrawings();
+  const [drawingColor, setDrawingColor] = useState('#3b82f6');
   const [isMobile, setIsMobile] = useState(false);
   const [assetPrices, setAssetPrices] = useState<Record<string, number>>({});
   const assets = getSupportedAssets();
@@ -652,6 +655,17 @@ export default function Home() {
         ))}
       </div>
       
+      {/* Drawing Tools */}
+      <div className="mb-2">
+        <DrawingTools
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          drawings={drawings}
+          onClearDrawings={clearDrawings}
+          onUndoDrawing={undoDrawing}
+        />
+      </div>
+
       {/* Main Chart */}
       <div className="mb-6">
         {loading ? (
@@ -668,6 +682,18 @@ export default function Home() {
               fibonacciLevels={fibonacciLevels}
               height={isMobile ? 350 : 500}
               chartType={chartType}
+              drawings={drawings}
+              activeTool={activeTool}
+              drawingColor={drawingColor}
+              currentDrawing={currentDrawing}
+              onDrawingStart={(point) => startDrawing(point, drawingColor)}
+              onDrawingMove={(point) => updateDrawing(point)}
+              onDrawingEnd={(point) => {
+                finishDrawing(point);
+                if (activeTool === 'horizontal') {
+                  // Horizontal lines only need one click
+                }
+              }}
             />
           </div>
         )}
