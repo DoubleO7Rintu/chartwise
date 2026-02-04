@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { fetchCryptoOHLCV, fetchAssetInfo, getSupportedAssets, AssetInfo, fetchStockOHLCV, fetchStockInfo } from '@/lib/api';
-import { OHLCV, SMA, EMA, RSI, MACD, BollingerBands, FibonacciRetracement, FibonacciLevel } from '@/utils/indicators';
+import { OHLCV, SMA, EMA, RSI, MACD, BollingerBands, FibonacciRetracement, FibonacciLevel, VWAP } from '@/utils/indicators';
 import { runAIAnalysis, AIAnalysis } from '@/utils/aiAnalysis';
 import { useTheme } from '@/hooks/useTheme';
 import { useWatchlist } from '@/hooks/useWatchlist';
@@ -83,6 +83,7 @@ export default function Home() {
     ema12: activeIndicators.includes('ema') ? EMA(ohlcvData.map(d => d.close), 12) : undefined,
     ema26: activeIndicators.includes('ema') ? EMA(ohlcvData.map(d => d.close), 26) : undefined,
     bb: activeIndicators.includes('bb') ? BollingerBands(ohlcvData.map(d => d.close)) : undefined,
+    vwap: activeIndicators.includes('vwap') ? VWAP(ohlcvData) : undefined,
   };
   
   // Calculate RSI for display
@@ -329,6 +330,7 @@ export default function Home() {
           { id: 'sma50', label: 'SMA 50' },
           { id: 'ema', label: 'EMA 12/26' },
           { id: 'bb', label: 'Bollinger' },
+          { id: 'vwap', label: 'VWAP' },
           { id: 'fib', label: 'Fibonacci' },
         ].map(ind => (
           <button
