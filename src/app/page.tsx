@@ -19,6 +19,7 @@ import AssetSearch from '@/components/AssetSearch';
 import NewsFeed from '@/components/NewsFeed';
 import AlertHistory from '@/components/AlertHistory';
 import MultiChartView from '@/components/MultiChartView';
+import TradingJournal from '@/components/TradingJournal';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -572,8 +573,11 @@ export default function Home() {
         </div>
       )}
 
-      {/* News Feed */}
-      <NewsFeed symbol={selectedAsset} className="mb-6" />
+      {/* News Feed & Trading Journal */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <NewsFeed symbol={selectedAsset} />
+        <TradingJournal symbol={selectedAsset} currentPrice={assetInfo?.price || 0} />
+      </div>
       
       {/* Chart Type & Indicators Toggle */}
       <div className="indicator-scroll flex flex-wrap items-center gap-4 mb-4 overflow-x-auto pb-2">
