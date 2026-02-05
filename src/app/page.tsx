@@ -36,6 +36,8 @@ import ChartTemplates from '@/components/ChartTemplates';
 import ShareButton from '@/components/ShareButton';
 import FearGreedIndex from '@/components/FearGreedIndex';
 import QuickStats from '@/components/QuickStats';
+import CryptoDominance from '@/components/CryptoDominance';
+import PricePerformance from '@/components/PricePerformance';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -673,6 +675,16 @@ export default function Home() {
           )}
         </div>
       )}
+
+      {/* Crypto Dominance & Price Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <ErrorBoundary componentName="Crypto Dominance">
+          <CryptoDominance />
+        </ErrorBoundary>
+        <ErrorBoundary componentName="Price Performance">
+          <PricePerformance selectedAsset={selectedAsset} onSelectAsset={setSelectedAsset} />
+        </ErrorBoundary>
+      </div>
 
       {/* Market Heatmap */}
       <ErrorBoundary componentName="Market Heatmap">
