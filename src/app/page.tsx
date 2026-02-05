@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { ChartRef } from '@/components/Chart';
 import dynamic from 'next/dynamic';
 import { fetchCryptoOHLCV, fetchAssetInfo, getSupportedAssets, AssetInfo, fetchStockOHLCV, fetchStockInfo } from '@/lib/api';
@@ -200,8 +200,8 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [holdings, portfolioMounted]);
   
-  // Calculate indicators
-  const indicators = {
+  // Calculate indicators (memoized)
+  const indicators = useMemo(() => ({
     sma20: activeIndicators.includes('sma20') ? SMA(ohlcvData.map(d => d.close), 20) : undefined,
     sma50: activeIndicators.includes('sma50') ? SMA(ohlcvData.map(d => d.close), 50) : undefined,
     ema12: activeIndicators.includes('ema') ? EMA(ohlcvData.map(d => d.close), 12) : undefined,
@@ -209,31 +209,38 @@ export default function Home() {
     bb: activeIndicators.includes('bb') ? BollingerBands(ohlcvData.map(d => d.close)) : undefined,
     vwap: activeIndicators.includes('vwap') ? VWAP(ohlcvData) : undefined,
     ichimoku: activeIndicators.includes('ichimoku') ? IchimokuCloud(ohlcvData) : undefined,
-  };
+  }), [ohlcvData, activeIndicators]);
   
-  // Calculate RSI for display
-  const rsiData = RSI(ohlcvData.map(d => d.close));
-  const currentRSI = rsiData[rsiData.length - 1];
+  // Calculate RSI for display (memoized)
+  const currentRSI = useMemo(() => {
+    const rsiData = RSI(ohlcvData.map(d => d.close));
+    return rsiData[rsiData.length - 1];
+  }, [ohlcvData]);
   
-  // Calculate MACD for display
-  const macdData = MACD(ohlcvData.map(d => d.close));
-  const currentMACD = macdData.histogram[macdData.histogram.length - 1];
+  // Calculate MACD for display (memoized)
+  const currentMACD = useMemo(() => {
+    const macdData = MACD(ohlcvData.map(d => d.close));
+    return macdData.histogram[macdData.histogram.length - 1];
+  }, [ohlcvData]);
   
-  // Calculate Fibonacci levels
-  const fibonacciLevels: FibonacciLevel[] = activeIndicators.includes('fib') 
-    ? FibonacciRetracement(ohlcvData)
-    : [];
+  // Calculate Fibonacci levels (memoized)
+  const fibonacciLevels: FibonacciLevel[] = useMemo(() => 
+    activeIndicators.includes('fib') 
+      ? FibonacciRetracement(ohlcvData)
+      : [],
+    [ohlcvData, activeIndicators]
+  );
   
-  const toggleIndicator = (indicator: string) => {
-    if (activeIndicators.includes(indicator)) {
-      setActiveIndicators(activeIndicators.filter(i => i !== indicator));
-    } else {
-      setActiveIndicators([...activeIndicators, indicator]);
-    }
-  };
+  const toggleIndicator = useCallback((indicator: string) => {
+    setActiveIndicators(prev => 
+      prev.includes(indicator)
+        ? prev.filter(i => i !== indicator)
+        : [...prev, indicator]
+    );
+  }, []);
 
-  // Screenshot function
-  const handleScreenshot = () => {
+  // Screenshot function (memoized)
+  const handleScreenshot = useCallback(() => {
     if (chartRef.current) {
       const dataUrl = chartRef.current.takeScreenshot();
       if (dataUrl) {
@@ -243,7 +250,7 @@ export default function Home() {
         link.click();
       }
     }
-  };
+  }, [selectedAsset, timeframe]);
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
