@@ -38,7 +38,8 @@ export default function MarketTicker({ onSelectAsset, className = '' }: MarketTi
     }
 
     fetchTicker();
-    const interval = setInterval(fetchTicker, 30000);
+    // 60s interval to reduce CoinGecko rate limit pressure (shared across components)
+    const interval = setInterval(fetchTicker, 60000);
     return () => clearInterval(interval);
   }, []);
 

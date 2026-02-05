@@ -18,14 +18,22 @@ interface LiquidationLevelsProps {
 // Supported symbols for liquidation data
 const SUPPORTED_SYMBOLS = ['BTC', 'ETH', 'SOL', 'XRP', 'SUI', 'DOGE', 'ADA', 'AVAX', 'LINK', 'DOT'];
 
+// Deterministic pseudo-random based on seed (avoids non-deterministic Math.random in render)
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9301 + 49297) * 233280;
+  return x - Math.floor(x);
+}
+
 // Generate estimated liquidation levels based on current price and common leverage tiers
 function estimateLiquidationLevels(currentPrice: number): LiquidationLevel[] {
   const levels: LiquidationLevel[] = [];
   const leverages = [2, 3, 5, 10, 20, 25, 50, 100];
+  // Round price to nearest 10 to avoid thrashing on tiny price changes
+  const roundedPrice = Math.round(currentPrice / 10) * 10;
 
-  for (const leverage of leverages) {
+  for (let i = 0; i < leverages.length; i++) {
+    const leverage = leverages[i];
     // Long liquidation: price drops by ~(1/leverage) from entry
-    // Simplified: liquidation price ≈ entryPrice × (1 - 1/leverage × maintenance)
     const maintenanceMargin = 0.005; // 0.5% maintenance
     const longLiqPercent = (1 / leverage) - maintenanceMargin;
     const longLiqPrice = currentPrice * (1 - longLiqPercent);
@@ -38,14 +46,14 @@ function estimateLiquidationLevels(currentPrice: number): LiquidationLevel[] {
 
     levels.push({
       price: longLiqPrice,
-      totalUsd: volumeWeight * (0.5 + Math.random() * 0.5),
+      totalUsd: volumeWeight * (0.5 + seededRandom(roundedPrice + leverage) * 0.5),
       leverage,
       side: 'long',
     });
 
     levels.push({
       price: shortLiqPrice,
-      totalUsd: volumeWeight * (0.5 + Math.random() * 0.5),
+      totalUsd: volumeWeight * (0.5 + seededRandom(roundedPrice + leverage + 1000) * 0.5),
       leverage,
       side: 'short',
     });

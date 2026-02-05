@@ -23,6 +23,7 @@ export default function MultiChartView({ isOpen, onClose, initialSymbols = ['BTC
 
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
     
     selectedSymbols.forEach(async (symbol) => {
       if (chartData[symbol]) return;
@@ -38,12 +39,18 @@ export default function MultiChartView({ isOpen, onClose, initialSymbols = ['BTC
           data = await fetchCryptoOHLCV(symbol, '1d', 90);
         }
         
-        setChartData(prev => ({ ...prev, [symbol]: data }));
+        if (!cancelled) {
+          setChartData(prev => ({ ...prev, [symbol]: data }));
+        }
       } catch (error) {
         console.error(`Failed to load ${symbol}:`, error);
       }
-      setLoading(prev => ({ ...prev, [symbol]: false }));
+      if (!cancelled) {
+        setLoading(prev => ({ ...prev, [symbol]: false }));
+      }
     });
+
+    return () => { cancelled = true; };
   }, [isOpen, selectedSymbols]);
 
   const addSymbol = (symbol: string) => {

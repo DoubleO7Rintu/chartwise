@@ -90,10 +90,12 @@ export default function FundingRate({ symbol, className = '' }: FundingRateProps
   const isSupported = BINANCE_SYMBOLS[symbol.toUpperCase()] !== undefined;
 
   useEffect(() => {
-    if (!isSupported) {
+    if (!isSupported || !isOpen) {
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
 
     const load = async () => {
       setLoading(true);
@@ -101,15 +103,20 @@ export default function FundingRate({ symbol, className = '' }: FundingRateProps
         fetchFundingRate(symbol),
         fetchFundingHistory(symbol),
       ]);
-      setData(rateData);
-      setHistory(histData);
-      setLoading(false);
+      if (!cancelled) {
+        setData(rateData);
+        setHistory(histData);
+        setLoading(false);
+      }
     };
 
     load();
     const interval = setInterval(load, 60000); // refresh every minute
-    return () => clearInterval(interval);
-  }, [symbol, isSupported]);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [symbol, isSupported, isOpen]);
 
   const annualizedRate = useMemo(() => {
     if (!data) return 0;

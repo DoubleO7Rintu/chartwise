@@ -58,14 +58,25 @@ export default function CorrelationMatrix({ className = '' }: CorrelationMatrixP
 
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
 
     async function fetchData() {
       setLoading(true);
       const allReturns: Record<string, number[]> = {};
 
-      for (const symbol of CRYPTO_SYMBOLS) {
-        try {
+      // Fetch all symbols in parallel
+      const results = await Promise.allSettled(
+        CRYPTO_SYMBOLS.map(async (symbol) => {
           const ohlcv: OHLCV[] = await fetchCryptoOHLCV(symbol, '1d', 90);
+          return { symbol, ohlcv };
+        })
+      );
+
+      if (cancelled) return;
+
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          const { symbol, ohlcv } = result.value;
           if (ohlcv.length > 1) {
             const dailyReturns: number[] = [];
             for (let i = 1; i < ohlcv.length; i++) {
@@ -73,8 +84,6 @@ export default function CorrelationMatrix({ className = '' }: CorrelationMatrixP
             }
             allReturns[symbol] = dailyReturns;
           }
-        } catch {
-          // skip
         }
       }
 
@@ -83,6 +92,7 @@ export default function CorrelationMatrix({ className = '' }: CorrelationMatrixP
     }
 
     fetchData();
+    return () => { cancelled = true; };
   }, [isOpen]);
 
   const matrix = useMemo(() => {

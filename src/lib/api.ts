@@ -18,17 +18,6 @@ const CRYPTO_IDS: Record<string, string> = {
   'DOT': 'polkadot',
 };
 
-// Timeframe to seconds mapping
-const TIMEFRAME_SECONDS: Record<string, number> = {
-  '1m': 60,
-  '5m': 300,
-  '15m': 900,
-  '1h': 3600,
-  '4h': 14400,
-  '1d': 86400,
-  '1w': 604800,
-};
-
 export interface AssetInfo {
   symbol: string;
   name: string;
@@ -100,43 +89,6 @@ export async function fetchAssetInfo(symbol: string): Promise<AssetInfo | null> 
   } catch (error) {
     console.error('Error fetching asset info:', error);
     return null;
-  }
-}
-
-// Fetch multiple assets for watchlist
-export async function fetchWatchlistPrices(symbols: string[]): Promise<Map<string, AssetInfo>> {
-  const ids = symbols.map(s => CRYPTO_IDS[s.toUpperCase()] || s.toLowerCase()).join(',');
-  
-  try {
-    const response = await axios.get(`${COINGECKO_BASE}/coins/markets`, {
-      params: {
-        vs_currency: 'usd',
-        ids: ids,
-        order: 'market_cap_desc',
-        sparkline: false,
-        price_change_percentage: '24h',
-      },
-    });
-    
-    const result = new Map<string, AssetInfo>();
-    
-    for (const coin of response.data) {
-      result.set(coin.symbol.toUpperCase(), {
-        symbol: coin.symbol.toUpperCase(),
-        name: coin.name,
-        price: coin.current_price,
-        change24h: coin.price_change_percentage_24h,
-        volume24h: coin.total_volume,
-        marketCap: coin.market_cap,
-        high24h: coin.high_24h,
-        low24h: coin.low_24h,
-      });
-    }
-    
-    return result;
-  } catch (error) {
-    console.error('Error fetching watchlist:', error);
-    return new Map();
   }
 }
 

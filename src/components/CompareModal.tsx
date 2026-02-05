@@ -43,37 +43,36 @@ export default function CompareModal({ isOpen, onClose, primaryAsset }: CompareM
     async function fetchComparison() {
       setLoading(true);
       const allSymbols = [primaryAsset, ...compareWith];
-      const results: ComparisonData[] = [];
 
-      for (const symbol of allSymbols) {
-        const asset = assets.find(a => a.symbol === symbol);
-        if (!asset) continue;
+      const results = await Promise.allSettled(
+        allSymbols.map(async (symbol) => {
+          const asset = assets.find(a => a.symbol === symbol);
+          if (!asset) return null;
 
-        try {
-          let info: AssetInfo | null;
-          if (asset.type === 'stock') {
-            info = await fetchStockInfo(symbol);
-          } else {
-            info = await fetchAssetInfo(symbol);
-          }
+          const info = asset.type === 'stock'
+            ? await fetchStockInfo(symbol)
+            : await fetchAssetInfo(symbol);
 
-          if (info) {
-            results.push({
-              symbol,
-              name: asset.name,
-              price: info.price,
-              change24h: info.change24h,
-              volume24h: info.volume24h,
-              marketCap: info.marketCap,
-              type: asset.type
-            });
-          }
-        } catch {
-          // Skip failed fetches
-        }
-      }
+          if (!info) return null;
 
-      setComparisonData(results);
+          return {
+            symbol,
+            name: asset.name,
+            price: info.price,
+            change24h: info.change24h,
+            volume24h: info.volume24h,
+            marketCap: info.marketCap,
+            type: asset.type,
+          } as ComparisonData;
+        })
+      );
+
+      setComparisonData(
+        results
+          .filter((r): r is PromiseFulfilledResult<ComparisonData | null> => r.status === 'fulfilled')
+          .map(r => r.value)
+          .filter((v): v is ComparisonData => v !== null)
+      );
       setLoading(false);
     }
 

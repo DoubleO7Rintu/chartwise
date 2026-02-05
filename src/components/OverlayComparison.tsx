@@ -42,6 +42,7 @@ export default function OverlayComparison({ primaryAsset, isOpen, onClose }: Ove
   // Fetch data for all selected assets
   useEffect(() => {
     if (!isOpen) return;
+    let cancelled = false;
 
     selectedAssets.forEach(async (symbol) => {
       if (assetData[symbol]?.length) return;
@@ -55,12 +56,18 @@ export default function OverlayComparison({ primaryAsset, isOpen, onClose }: Ove
         } else {
           data = await fetchCryptoOHLCV(symbol, '1d', timeframe);
         }
-        setAssetData(prev => ({ ...prev, [symbol]: data }));
+        if (!cancelled) {
+          setAssetData(prev => ({ ...prev, [symbol]: data }));
+        }
       } catch (err) {
         console.error(`Failed to load ${symbol}`, err);
       }
-      setLoading(prev => ({ ...prev, [symbol]: false }));
+      if (!cancelled) {
+        setLoading(prev => ({ ...prev, [symbol]: false }));
+      }
     });
+
+    return () => { cancelled = true; };
   }, [isOpen, selectedAssets, timeframe]);
 
   // Normalize price data to percentage change from first data point

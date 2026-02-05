@@ -35,7 +35,7 @@ function formatTime(timestamp: number): string {
   return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-function formatQuantity(qty: number, symbol: string): string {
+function formatQuantity(qty: number, _symbol: string): string {
   if (qty >= 1000) return `${(qty / 1000).toFixed(2)}K`;
   if (qty >= 1) return qty.toFixed(2);
   return qty.toFixed(4);
@@ -58,6 +58,9 @@ export default function TradeTape({ symbol, className = '' }: TradeTapeProps) {
   const wsRef = useRef<WebSocket | null>(null);
   const tradesRef = useRef<Trade[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttempts = useRef(0);
+  const intentionalClose = useRef(false);
 
   const binanceSymbol = BINANCE_SYMBOLS[symbol.toUpperCase()];
 
@@ -65,13 +68,18 @@ export default function TradeTape({ symbol, className = '' }: TradeTapeProps) {
     if (!binanceSymbol || !isOpen) return;
 
     if (wsRef.current) {
+      intentionalClose.current = true;
       wsRef.current.close();
     }
+    intentionalClose.current = false;
 
     const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${binanceSymbol.toLowerCase()}@aggTrade`);
     wsRef.current = ws;
 
-    ws.onopen = () => setIsConnected(true);
+    ws.onopen = () => {
+      setIsConnected(true);
+      reconnectAttempts.current = 0;
+    };
 
     ws.onmessage = (event) => {
       try {
@@ -104,9 +112,18 @@ export default function TradeTape({ symbol, className = '' }: TradeTapeProps) {
 
     ws.onclose = () => {
       setIsConnected(false);
+      wsRef.current = null;
+
+      // Auto-reconnect on unexpected close (up to 5 attempts with backoff)
+      if (!intentionalClose.current && isOpen && reconnectAttempts.current < 5) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+        reconnectAttempts.current++;
+        reconnectTimeoutRef.current = setTimeout(connect, delay);
+      }
     };
 
     return () => {
+      intentionalClose.current = true;
       ws.close();
     };
   }, [binanceSymbol, isOpen]);
@@ -114,10 +131,15 @@ export default function TradeTape({ symbol, className = '' }: TradeTapeProps) {
   useEffect(() => {
     const cleanup = connect();
     return () => {
+      intentionalClose.current = true;
       cleanup?.();
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
     };
   }, [connect]);

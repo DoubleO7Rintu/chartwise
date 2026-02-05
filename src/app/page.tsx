@@ -80,6 +80,19 @@ export default function Home() {
   const { holdings, addHolding, removeHolding, getTotalValue, getTotalCost, getHoldingsWithPrices, mounted: portfolioMounted } = usePortfolio();
   const { drawings, activeTool, currentDrawing, setActiveTool, undoDrawing, clearDrawings, startDrawing, updateDrawing, finishDrawing } = useDrawings();
   const [drawingColor, setDrawingColor] = useState('#3b82f6');
+  const drawingColorRef = useRef(drawingColor);
+  drawingColorRef.current = drawingColor;
+
+  // Stable drawing callbacks (avoid re-creating Chart on every render)
+  const handleDrawingStart = useCallback((point: { time: number; price: number }) => {
+    startDrawing(point, drawingColorRef.current);
+  }, [startDrawing]);
+  const handleDrawingMove = useCallback((point: { time: number; price: number }) => {
+    updateDrawing(point);
+  }, [updateDrawing]);
+  const handleDrawingEnd = useCallback((point: { time: number; price: number }) => {
+    finishDrawing(point);
+  }, [finishDrawing]);
   const [isMobile, setIsMobile] = useState(false);
   const [assetPrices, setAssetPrices] = useState<Record<string, number>>({});
   const assets = getSupportedAssets();
@@ -110,8 +123,10 @@ export default function Home() {
     }
   }, []);
   
-  // Fetch data
+  // Fetch data (with race condition protection)
   useEffect(() => {
+    let cancelled = false;
+
     async function loadData() {
       setLoading(true);
       setError(null);
@@ -136,6 +151,8 @@ export default function Home() {
           ]);
         }
         
+        if (cancelled) return;
+
         if (ohlcv.length === 0) {
           setError(`No data available for ${selectedAsset}`);
         }
@@ -151,14 +168,16 @@ export default function Home() {
           setAiAnalysis(null);
         }
       } catch (err) {
+        if (cancelled) return;
         setError(`Failed to load data for ${selectedAsset}. Please try again.`);
         console.error(err);
       }
       
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     }
     
     loadData();
+    return () => { cancelled = true; };
   }, [selectedAsset, timeframe]);
   
   // Check price alerts when price updates
@@ -808,6 +827,8 @@ export default function Home() {
           drawings={drawings}
           onClearDrawings={clearDrawings}
           onUndoDrawing={undoDrawing}
+          drawingColor={drawingColor}
+          onColorChange={setDrawingColor}
         />
       </div>
 
@@ -831,14 +852,9 @@ export default function Home() {
               activeTool={activeTool}
               drawingColor={drawingColor}
               currentDrawing={currentDrawing}
-              onDrawingStart={(point) => startDrawing(point, drawingColor)}
-              onDrawingMove={(point) => updateDrawing(point)}
-              onDrawingEnd={(point) => {
-                finishDrawing(point);
-                if (activeTool === 'horizontal') {
-                  // Horizontal lines only need one click
-                }
-              }}
+              onDrawingStart={handleDrawingStart}
+              onDrawingMove={handleDrawingMove}
+              onDrawingEnd={handleDrawingEnd}
             />
           </div>
         )}

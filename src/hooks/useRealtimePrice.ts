@@ -48,9 +48,13 @@ export function useRealtimePrice({ symbols, enabled = true }: UseRealtimePriceOp
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
 
+  // Stabilize symbols array to prevent reconnection loops
+  // (callers often pass [symbol] which creates a new array each render)
+  const symbolsKey = symbols.join(',');
+
   const connect = useCallback(() => {
     // Only connect for crypto symbols that have CoinCap mapping
-    const cryptoSymbols = symbols.filter(s => COINCAP_IDS[s]);
+    const cryptoSymbols = symbolsKey.split(',').filter(s => s && COINCAP_IDS[s]);
     if (cryptoSymbols.length === 0 || !enabled) return;
 
     // Build CoinCap WebSocket URL with asset IDs
@@ -123,7 +127,7 @@ export function useRealtimePrice({ symbols, enabled = true }: UseRealtimePriceOp
     } catch (err) {
       setState(prev => ({ ...prev, error: 'Failed to create WebSocket connection' }));
     }
-  }, [symbols, enabled]);
+  }, [symbolsKey, enabled]);
 
   const reconnect = useCallback(() => {
     reconnectAttempts.current = 0;

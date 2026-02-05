@@ -18,6 +18,8 @@ interface DrawingToolsProps {
   drawings: Drawing[];
   onClearDrawings: () => void;
   onUndoDrawing: () => void;
+  drawingColor?: string;
+  onColorChange?: (color: string) => void;
   className?: string;
 }
 
@@ -45,10 +47,12 @@ export default function DrawingTools({
   drawings,
   onClearDrawings,
   onUndoDrawing,
+  drawingColor,
+  onColorChange,
   className = ''
 }: DrawingToolsProps) {
   const [showColors, setShowColors] = useState(false);
-  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+  const selectedColor = drawingColor || COLORS[0];
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
@@ -84,7 +88,7 @@ export default function DrawingTools({
               <button
                 key={color}
                 onClick={() => {
-                  setSelectedColor(color);
+                  onColorChange?.(color);
                   setShowColors(false);
                 }}
                 className={`w-6 h-6 rounded-md border-2 ${
