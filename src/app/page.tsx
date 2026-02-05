@@ -39,6 +39,8 @@ import QuickStats from '@/components/QuickStats';
 import CryptoDominance from '@/components/CryptoDominance';
 import PricePerformance from '@/components/PricePerformance';
 import OpenInterest from '@/components/OpenInterest';
+import LongShortRatio from '@/components/LongShortRatio';
+import MarketTicker from '@/components/MarketTicker';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -285,7 +287,13 @@ export default function Home() {
   });
   
   return (
-    <main id="main-content" className="min-h-screen p-4 md:p-6" role="main">
+    <main id="main-content" className="min-h-screen" role="main">
+      {/* Market Ticker */}
+      <ErrorBoundary componentName="Market Ticker">
+        <MarketTicker onSelectAsset={setSelectedAsset} />
+      </ErrorBoundary>
+
+      <div className="p-4 md:p-6">
       {/* Header */}
       <header className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -558,14 +566,17 @@ export default function Home() {
         </>
       )}
 
-      {/* Trade Tape & Open Interest for crypto */}
+      {/* Trade Tape, Open Interest & Long/Short Ratio for crypto */}
       {assets.find(a => a.symbol === selectedAsset)?.type === 'crypto' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <ErrorBoundary componentName="Trade Tape">
             <TradeTape symbol={selectedAsset} />
           </ErrorBoundary>
           <ErrorBoundary componentName="Open Interest">
             <OpenInterest symbol={selectedAsset} />
+          </ErrorBoundary>
+          <ErrorBoundary componentName="Long/Short Ratio">
+            <LongShortRatio symbol={selectedAsset} />
           </ErrorBoundary>
         </div>
       )}
@@ -959,6 +970,7 @@ export default function Home() {
         onClose={() => setShowOverlay(false)}
         primaryAsset={selectedAsset}
       />
+      </div>{/* end p-4 md:p-6 wrapper */}
     </main>
   );
 }
