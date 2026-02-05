@@ -41,6 +41,7 @@ import PricePerformance from '@/components/PricePerformance';
 import OpenInterest from '@/components/OpenInterest';
 import LongShortRatio from '@/components/LongShortRatio';
 import MarketTicker from '@/components/MarketTicker';
+import CorrelationMatrix from '@/components/CorrelationMatrix';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -691,13 +692,16 @@ export default function Home() {
         </div>
       )}
 
-      {/* Crypto Dominance & Price Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      {/* Crypto Dominance, Price Performance & Correlation */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <ErrorBoundary componentName="Crypto Dominance">
           <CryptoDominance />
         </ErrorBoundary>
         <ErrorBoundary componentName="Price Performance">
           <PricePerformance selectedAsset={selectedAsset} onSelectAsset={setSelectedAsset} />
+        </ErrorBoundary>
+        <ErrorBoundary componentName="Correlation Matrix">
+          <CorrelationMatrix />
         </ErrorBoundary>
       </div>
 
