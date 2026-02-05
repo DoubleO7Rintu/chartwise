@@ -42,6 +42,10 @@ import OpenInterest from '@/components/OpenInterest';
 import LongShortRatio from '@/components/LongShortRatio';
 import MarketTicker from '@/components/MarketTicker';
 import CorrelationMatrix from '@/components/CorrelationMatrix';
+import DivergenceDetector from '@/components/DivergenceDetector';
+import MultiTimeframe from '@/components/MultiTimeframe';
+import ChartAnnotations, { useAnnotations } from '@/components/ChartAnnotations';
+import AlertConditionsBuilder from '@/components/AlertConditionsBuilder';
 
 // Dynamic import for chart (needs client-side only)
 const Chart = dynamic(() => import('@/components/Chart'), { ssr: false });
@@ -79,6 +83,7 @@ export default function Home() {
   const { alerts, alertHistory, addAlert, removeAlert, checkAlerts, clearAlertHistory, requestNotificationPermission, mounted: alertsMounted } = usePriceAlerts();
   const { holdings, addHolding, removeHolding, getTotalValue, getTotalCost, getHoldingsWithPrices, mounted: portfolioMounted } = usePortfolio();
   const { drawings, activeTool, currentDrawing, setActiveTool, undoDrawing, clearDrawings, startDrawing, updateDrawing, finishDrawing } = useDrawings();
+  const { annotations, addAnnotation, removeAnnotation, clearAnnotations } = useAnnotations();
   const [drawingColor, setDrawingColor] = useState('#3b82f6');
   const drawingColorRef = useRef(drawingColor);
   drawingColorRef.current = drawingColor;
@@ -560,6 +565,19 @@ export default function Home() {
         </div>
       )}
 
+      {/* Alert Conditions Builder */}
+      {assetInfo && ohlcvData.length > 20 && (
+        <div className="mb-6">
+          <ErrorBoundary componentName="Alert Conditions">
+            <AlertConditionsBuilder
+              symbol={selectedAsset}
+              data={ohlcvData}
+              currentPrice={assetInfo.price}
+            />
+          </ErrorBoundary>
+        </div>
+      )}
+
       {/* Alert History */}
       {alertsMounted && alertHistory.length > 0 && (
         <AlertHistory
@@ -746,10 +764,27 @@ export default function Home() {
         )}
       </ErrorBoundary>
 
-      {/* Pattern Detection & Volume Profile */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      {/* Pattern Detection, Divergence & Volume Profile */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <PatternDetector data={ohlcvData} symbol={selectedAsset} />
+        <DivergenceDetector data={ohlcvData} symbol={selectedAsset} />
         <VolumeProfile data={ohlcvData} currentPrice={assetInfo?.price || 0} />
+      </div>
+
+      {/* Multi-Timeframe Analysis & Chart Annotations */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <ErrorBoundary componentName="Multi-Timeframe">
+          <MultiTimeframe symbol={selectedAsset} />
+        </ErrorBoundary>
+        <ErrorBoundary componentName="Chart Annotations">
+          <ChartAnnotations
+            symbol={selectedAsset}
+            annotations={annotations}
+            onAddAnnotation={addAnnotation}
+            onRemoveAnnotation={removeAnnotation}
+            onClearAnnotations={() => clearAnnotations(selectedAsset)}
+          />
+        </ErrorBoundary>
       </div>
 
       {/* News Feed & Trading Journal */}
