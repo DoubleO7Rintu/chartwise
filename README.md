@@ -67,6 +67,14 @@ To contribute:
 3. Commit your changes
 4. Push and open a PR
 
+## Contributors
+
+Thanks to everyone who has contributed to ChartWise!
+
+- **[@MaplesMcDepth](https://github.com/MaplesMcDepth)** — Settings panel with theme toggle (#28) 🎉 *First external contributor!*
+
+Want your name here? Check the [open issues](https://github.com/DoubleO7Rintu/chartwise/issues) and submit a PR.
+
 ## License
 
 MIT License — free to use, modify, and distribute.
