@@ -23,6 +23,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import ChartTemplates from '@/components/ChartTemplates';
 import ShareButton from '@/components/ShareButton';
 import QuickStats from '@/components/QuickStats';
+import SettingsPanel from '@/components/SettingsPanel';
 import { useAnnotations } from '@/components/ChartAnnotations';
 
 // Dynamic imports — heavy, conditional, WebSocket-based, or below the fold
@@ -421,15 +422,7 @@ export default function Home() {
                 setActiveIndicators(config.indicators);
               }}
             />
-            {mounted && (
-              <button
-                onClick={toggleTheme}
-                className="theme-toggle"
-                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              >
-                {theme === 'dark' ? '☀️' : '🌙'}
-              </button>
-            )}
+            {mounted && <SettingsPanel theme={theme} onToggleTheme={toggleTheme} />}
           </div>
         </div>
         
